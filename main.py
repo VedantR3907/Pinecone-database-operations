@@ -1,6 +1,6 @@
 
 from pinecone import ServerlessSpec
-from constant import PINECONE_CLIENT, PINECONE_INDEX_NAME
+from constants import PINECONE_CLIENT, PINECONE_INDEX_NAME
 
 pc = PINECONE_CLIENT
 index_name = PINECONE_INDEX_NAME
