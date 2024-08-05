@@ -16,14 +16,15 @@ def generate_embeddings(metadata_path: str) -> None:
         metadata = json.load(file)
     
     # Prepare the texts for embedding
-    texts = [entry['text'] for entry in metadata.values()]
+    texts = [entry['metadata']['text'] for entry in metadata]
+    ids = [entry['id'] for entry in metadata]  # noqa: F841
     
     # Generate embeddings for the texts
     document_embeddings = embeddings.embed_documents(texts)
     
     # Update the metadata with embeddings
-    for (chunk_id, chunk_metadata), embedding in zip(metadata.items(), document_embeddings):
-        chunk_metadata['embedding'] = embedding  # Directly assign the embedding
+    for entry, embedding in zip(metadata, document_embeddings):
+        entry['values'] = embedding  # Assign the embedding to the values key
     
     # Save the updated metadata with embeddings back to the same JSON file
     with open(metadata_path, 'w', encoding='utf-8') as file:

@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Dict
+from typing import Dict, Any
 from datetime import datetime
 
 def ReadFiles(folder_path: str) -> Dict[str, Dict[str, str]]:
@@ -13,8 +13,8 @@ def ReadFiles(folder_path: str) -> Dict[str, Dict[str, str]]:
     Returns:
         Dict[str, Dict[str, str]]: A dictionary where keys are file names and values are dictionaries containing:
             - 'content': The file content as a string.
-            - 'creation_date': The file creation date as a string.
-            - 'last_modified_date': The file last modified date as a string.
+            - 'creation_date': The file creation date as a string in 'YYYY-MM-DD' format.
+            - 'last_modified_date': The file last modified date as a string in 'YYYY-MM-DD' format.
             - 'file_path': The full path to the file.
             - 'file_size': The file size in bytes.
     """
@@ -22,8 +22,8 @@ def ReadFiles(folder_path: str) -> Dict[str, Dict[str, str]]:
     for filename in os.listdir(folder_path):
         file_path_full = os.path.join(folder_path, filename)
         if os.path.isfile(file_path_full) and filename.endswith('.txt'):
-            creation_date = datetime.fromtimestamp(os.path.getctime(file_path_full)).isoformat()
-            last_modified_date = datetime.fromtimestamp(os.path.getmtime(file_path_full)).isoformat()
+            creation_date = datetime.fromtimestamp(os.path.getctime(file_path_full)).strftime('%Y-%m-%d')
+            last_modified_date = datetime.fromtimestamp(os.path.getmtime(file_path_full)).strftime('%Y-%m-%d')
             file_size = os.path.getsize(file_path_full)
             
             with open(file_path_full, 'r', encoding='utf-8') as file:
@@ -37,7 +37,6 @@ def ReadFiles(folder_path: str) -> Dict[str, Dict[str, str]]:
                 'file_size': file_size
             }
     return file_contents
-
 
 def TextSplitter(file_contents: Dict[str, Dict[str, str]], chunk_size: int = 512) -> Dict[str, Dict[str, str]]:
     """
@@ -83,16 +82,33 @@ def TextSplitter(file_contents: Dict[str, Dict[str, str]], chunk_size: int = 512
     
     return metadata
 
-def WriteMetadataToJson(metadata: Dict[str, Dict[str, str]], output_path: str) -> None:
+def WriteMetadataToJson(metadata: Dict[str, Dict[str, Any]], output_path: str) -> None:
     """
-    Writes the metadata to a JSON file.
+    Writes the metadata to a JSON file with a new structure.
 
     Args:
-        metadata (Dict[str, Dict[str, str]]): The metadata dictionary to be written to the JSON file.
+        metadata (Dict[str, Dict[str, Any]]): The metadata dictionary to be written to the JSON file.
         output_path (str): The path where the JSON file will be saved.
     """
+    # Reformat the metadata to the new structure
+    reformatted_data = []
+    for chunk_id, chunk_metadata in metadata.items():
+        reformatted_data.append({
+            "id": chunk_id,
+            "values": chunk_metadata.get('embedding', []),  # Include embeddings if available
+            "metadata": {
+                "text": chunk_metadata['text'],  # Include the text content in the metadata
+                "creation_date": chunk_metadata['creation_date'],
+                "file_name": chunk_metadata['file_name'],
+                "file_path": chunk_metadata['file_path'],
+                "file_size": chunk_metadata['file_size'],
+                "last_modified_date": chunk_metadata['last_modified_date']
+            }
+        })
+    
+    # Write the reformatted data to the JSON file
     with open(output_path, 'w', encoding='utf-8') as json_file:
-        json.dump(metadata, json_file, ensure_ascii=False, indent=4)
+        json.dump(reformatted_data, json_file, ensure_ascii=False, indent=4)
 
 # Construct the path to the extracted_output folder in the parent directory of the current script's directory
 extracted_output_path: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'extracted_output')
