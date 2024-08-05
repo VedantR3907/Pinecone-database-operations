@@ -1,7 +1,41 @@
+import re
 import os
 import json
 from typing import Dict, Any
 from datetime import datetime
+
+
+def filter_filename(filename: str, id: bool) -> str:
+    """
+    Filter and format the filename based on the given parameters.
+
+    Args:
+        filename (str): The original filename.
+        id (bool): If True, keep the '.' and '#' characters; otherwise, remove them.
+
+    Returns:
+        str: The filtered and formatted filename.
+    """
+    # Split the filename into name and extension
+    name, ext = filename.rsplit('.', 1) if '.' in filename else (filename, '')
+
+    # Handle the case where there's no extension
+    if ext:
+        ext = '.' + ext
+    
+    # Remove special characters and spaces, keeping '.' and '#' if id is True
+    if not id:
+        name = re.sub(r'[^\w\s#.]', '', name)
+    else:
+        name = re.sub(r'[^\w\s.#]', '', name)
+
+    # Remove spaces and capitalize the first letter of each word
+    name = re.sub(r'\s+', '', name.title())
+
+    # Reassemble the filename
+    filtered_filename = name + ext
+    
+    return filtered_filename
 
 def ReadFiles(folder_path: str) -> Dict[str, Dict[str, str]]:
     """
@@ -94,7 +128,7 @@ def WriteMetadataToJson(metadata: Dict[str, Dict[str, Any]], output_path: str) -
     reformatted_data = []
     for chunk_id, chunk_metadata in metadata.items():
         reformatted_data.append({
-            "id": chunk_id,
+            "id": filter_filename(chunk_id, id=True),
             "values": chunk_metadata.get('embedding', []),  # Include embeddings if available
             "metadata": {
                 "text": chunk_metadata['text'],  # Include the text content in the metadata
@@ -110,23 +144,35 @@ def WriteMetadataToJson(metadata: Dict[str, Dict[str, Any]], output_path: str) -
     with open(output_path, 'w', encoding='utf-8') as json_file:
         json.dump(reformatted_data, json_file, ensure_ascii=False, indent=4)
 
-# Construct the path to the extracted_output folder in the parent directory of the current script's directory
-extracted_output_path: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'extracted_output')
+def process_metadata(directory_path: str) -> None:
+    """
+    Processes files in the specified directory to create metadata and write it to a JSON file.
 
-# Ensure that the path exists and is a directory
-if os.path.isdir(extracted_output_path):
-    # Read all files in the extracted_output folder
-    file_contents = ReadFiles(extracted_output_path)
+    Args:
+        base_path (str): The path to the directory containing files to process.
+    """
+    # Construct the path to the extracted_output folder in the specified base path
+    extracted_output_path = directory_path
 
-    # Split the text and create metadata
-    metadata = TextSplitter(file_contents)
+    # Ensure that the path exists and is a directory
+    if os.path.isdir(extracted_output_path):
+        print(f"Processing files in the directory: {extracted_output_path}")
+        
+        # Read all files in the extracted_output folder
+        file_contents = ReadFiles(extracted_output_path)
 
-    # Define the path for the JSON output file
-    json_output_path: str = os.path.join(extracted_output_path, 'metadata.json')
+        # Split the text and create metadata
+        metadata = TextSplitter(file_contents)
 
-    # Write the metadata to the JSON file
-    WriteMetadataToJson(metadata, json_output_path)
+        # Define the path for the JSON output file
+        json_output_path = os.path.join(extracted_output_path, 'metadata.json')
 
-    print(f"Metadata has been written to {json_output_path}.")
-else:
-    print(f"The path {extracted_output_path} is not a valid directory.")
+        # Write the metadata to the JSON file
+        WriteMetadataToJson(metadata, json_output_path)
+
+        print(f"Metadata has been written to {json_output_path}.")
+    else:
+        print(f"The path {extracted_output_path} is not a valid directory.")
+    
+if __name__ == "__main__":
+    process_metadata('../extracted_output')
