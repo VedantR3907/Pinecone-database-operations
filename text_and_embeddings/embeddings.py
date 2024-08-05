@@ -1,6 +1,8 @@
 import json
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 
+embeddings = FastEmbedEmbeddings()
+
 def generate_embeddings(metadata_path: str) -> None:
     """
     Generate embeddings for text chunks and update the metadata JSON file with these embeddings.
@@ -8,8 +10,6 @@ def generate_embeddings(metadata_path: str) -> None:
     Args:
         metadata_path (str): The path to the JSON file containing the metadata and where embeddings will be added.
     """
-    # Initialize the embeddings
-    embeddings = FastEmbedEmbeddings()
     
     # Load the metadata
     with open(metadata_path, 'r', encoding='utf-8') as file:
