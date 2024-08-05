@@ -4,6 +4,7 @@ import json
 sys.path.append('../')
 from constants import PINECONE_NAMESPACE, PINECONE_CLIENT, PINECONE_INDEX_NAME
 from text_and_embeddings.main import Generate_TextAndEmbeddings
+from pinecone import ServerlessSpec
 
 index_name = PINECONE_INDEX_NAME
 pc = PINECONE_CLIENT
@@ -17,6 +18,21 @@ def upsert_data(json_path: str, index_name: str) -> None:
         json_path (str): The path to the JSON file containing the embeddings.
         index_name (str): The name of the Pinecone index.
     """
+
+    if index_name not in pc.list_indexes().names():
+        pc.create_index(
+            name=index_name,
+            dimension=512,
+            metric="cosine",
+            spec=ServerlessSpec(
+                cloud='aws', 
+                region='us-east-1'
+            )
+        )
+
+        print("INDEX CREATED SUCCESSFULLY")
+    else:
+        print("INDEX ALREADY EXISTS")
     index = pc.Index(index_name)
     
     # Load the data from JSON
